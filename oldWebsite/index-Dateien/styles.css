@@ -1,0 +1,367 @@
+a,img {
+	border: 0;
+	outline: 0
+}
+
+body {
+	margin: 0px;
+	font-family: sans-serif;
+}
+
+#body {
+	width: 1000px;
+	margin: 0 auto;
+	position: relative;
+}
+
+#header {
+	background: url(../images/header_bg.png) repeat-x;
+	width: 100%;
+	height: 128px;
+	position: relative;
+}
+
+#logo {
+	position: absolute;
+	top: 0px;
+	left: -3px;
+}
+
+#nav {
+	background: #353E46;
+	position: relative;
+	height: 75px;
+	width: 100%;
+}
+
+#nav a {
+	color: #FFF;
+	float: left;
+	margin: 25px 0 0 0;
+	padding: 0 40px 0 40px;
+	font-size: 18px;
+	text-decoration: none;
+	border-right: 1px solid #ffffff;
+}
+
+#nav a:last-child {
+	padding: 0 0 0 40px;
+	border-right: none;
+}
+
+#nav .sep {
+	float: left;
+	margin: 25px 40px 0 0;
+	background: #FFF;
+	height: 20px;
+	width: 1px
+}
+
+#content,#content_center {
+	min-height: 580px;
+	width: 100%;
+	position: relative;
+	background: #E6E6E6;
+}
+
+#content h1,#content_center h1 {
+	float: left;
+	margin: 30px 0 0 20px;
+	text-transform: uppercase;
+	font-size: 22px
+}
+
+#content span,#content p,#content div {
+	float: left;
+	margin: 0 0 0 30px;
+	clear: both
+}
+
+#content_center h1 {
+	float: none;
+}
+
+.center {
+	width: 500px;
+	position: relative;
+	margin: 0 auto;
+	padding: 5px
+}
+
+.bg_white {
+	background: #FFF;
+	color: #000
+}
+
+.txt_center {
+	text-align: center
+}
+
+.gray {
+	color: #525252
+}
+
+.small {
+	font-size: 12px
+}
+
+.medium {
+	font-size: 14px
+}
+
+.text_submit {
+	color: #00E;
+	font-size: 14px
+}
+
+.clear {
+	clear: both
+}
+
+#prod_name {
+	position: absolute;
+	top: 90px;
+	left: 29px;
+	font-size: 16px;
+	text-align: center;
+	padding: 2px 5px;
+}
+
+#language {
+	position: absolute;
+	top: 10px;
+	right: 4px;
+	font-size: 12px;
+}
+
+#logout {
+	position: absolute;
+	top: 33px;
+	right: 4px;
+}
+
+#loginUP {
+	position: absolute;
+	top: 33px;
+	right: 4px;
+}
+
+#product_status_wrapper {
+	position: absolute;
+	top: 108px;
+	right: 4px;
+}
+
+#footer {
+	font-size: 11px;
+	color: #888;
+	text-align: center;
+}
+
+#product_status {
+	width: 15px;
+	height: 15px;
+	display: inline-block;
+	border: solid 1px #FFF;
+	text-decoration: none
+}
+
+.product_status_green {
+	background: #28BE28
+}
+
+.product_status_orange {
+	background: #EB9800
+}
+
+.product_status_red {
+	background: #DF0404
+}
+
+#monitor {
+	margin-left: 30px;
+	top: 150px;
+	left: 250px;
+	width: 500px;
+	min-height: 500px;
+	font-size: 13px;
+}
+
+#monitor .alert {
+	color: red;
+}
+
+.monitor_subtitle {
+	font-size: 17px;
+	font-weight: bold;
+	font-style: italic
+}
+
+.monitor_data {
+	color: #3F3D3D
+}
+
+.monitor_data span {
+	color: #000
+}
+
+#config_content {
+	margin: 0 0 0 30px;
+}
+
+#presets {
+	position: absolute;
+	padding: 10px;
+	background-color: #fff;
+	display: none;
+}
+
+/* tabs  */
+.ui-tabs { padding: .2em; zoom: 1; }
+.ui-tabs .ui-tabs-nav { list-style: none; position: relative; padding: .2em .2em 0; }
+.ui-tabs .ui-tabs-nav li { position: relative; float: left; border-bottom-width: 0 !important; margin: 0 .2em -1px 0; padding: 0; }
+.ui-tabs .ui-tabs-nav li a { float: left; text-decoration: none; padding: .2em .4em; }
+.ui-tabs .ui-tabs-nav li.ui-tabs-selected { padding-bottom: 1px; border-bottom-width: 0; }
+.ui-tabs .ui-tabs-nav li.ui-tabs-selected a, .ui-tabs .ui-tabs-nav li.ui-state-disabled a, .ui-tabs .ui-tabs-nav li.ui-state-processing a { cursor: text; }
+.ui-tabs .ui-tabs-nav li a, .ui-tabs.ui-tabs-collapsible .ui-tabs-nav li.ui-tabs-selected a { cursor: pointer; } /* first selector in group seems obsolete, but required to overcome bug in Opera applying cursor: text overall if defined elsewhere... */
+.ui-tabs .ui-tabs-panel { padding: 1em 1.4em; display: block; border-width: 0; background-color: #D3D3D3; }
+.ui-tabs .ui-tabs-hide { display: none !important; }
+
+.ui-state-active, .ui-widget-content .ui-state-active { border: 1px solid #fbd850; background: #ffffff; font-weight: bold; color: #eb8f00; outline: none; }
+.ui-state-active a, .ui-state-active a:link, .ui-state-active a:visited { color: #eb8f00; outline: none; text-decoration: none; }
+
+.ui-helper-clearfix:after { content: "."; display: block; height: 0; clear: both; visibility: hidden; }
+
+ul.tabs {
+	list-style: none;
+	margin: 0 !important;
+	padding: 0;
+	width: 900px;
+	font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
+	font-size: 1.1em;
+}
+
+ul.tabs li {
+	float: left;
+	text-indent: 0;
+	padding: 0;
+	margin: 0 1px !important;
+	list-style-image: none !important;
+	background: #FFF;
+	border: none
+	color: #353E46;
+	outline: none;
+}
+
+ul.tabs a {
+	font-size: 14px;
+	display: block;
+	height: 30px;
+	line-height: 30px;
+	width: 105px;
+	text-align: center;
+	text-decoration: none;
+	color: #1c94c4;
+	padding: 0px;
+	margin: 0px;
+	position: relative;
+	top: 1px;
+	outline: none;
+}
+
+ul.tabs a:active {
+	outline: none;
+}
+
+ul.tabs a:hover {
+	text-decoration: underline;
+	outline: none;
+	color: #c77405;
+}
+
+ul.tabs a.current,ul.tabs a.current:hover,ul.tabs li.current a {
+	cursor: default !important;
+	color: #000 !important;
+	font-weight: bold
+}
+
+.panes {
+	width: 850px
+}
+
+.panes .pane {
+	display: none
+}
+
+.panes div {
+	display: none;
+	padding: 15px 10px;
+	font-size: 14px;
+	background: #D3D3D3
+}
+
+.panes div div {
+	display: block;
+	padding: 0;
+	height: auto;
+	font-size: 14px;
+	background: none
+}
+
+.tblList td {
+	padding: 1px;
+	font-size: 12px
+}
+
+.tblList td input[type=text], .tblList td input[type=password] {
+	width: 170px;
+	height: 20px;
+	border: 0;
+	padding-left: 5px;
+	font-size: 12px
+}
+
+.tblPorts td {
+	font-size: 14px
+}
+
+.config_radio {
+	width: auto !important;
+	height: auto !important
+}
+
+.tblHeading {
+	font-weight: bold;
+	font-size: 16px !important
+}
+
+.tblSubHeading {
+	font-weight: bold;
+	font-size: 14px !important
+}
+
+.portman_container {
+	background-color: #D3D3D3;
+	display: inline-block;
+	padding: 15px 20px 20px 20px;
+	width: 475px;
+}
+
+.tblPortMan {
+	font-size: 12px
+}
+
+.tblPortMan td {
+	border-bottom: solid 1px #FFF;
+	height: 25px;
+	padding-right: 15px
+}
+
+#portman_content {
+	margin: 0 0 0 30px;
+	width: 850px
+}
+
+#portman_wrapper {
+	width: 515px;
+}

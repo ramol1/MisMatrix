@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<title>Web Management | Multimedia 16x16 Matrix Switch | Matrix Switch 16x16</title>
+		<meta charset="utf-8">
+		<link rel="stylesheet" type="text/css" href="index-Dateien/styles.css">
+		<link rel="stylesheet" type="text/css" href="index-Dateien/muxlab_utilities.css">
+		<script type="text/javascript" src="index-Dateien/jquery-1.js"></script>
+		<script type="text/javascript" src="index-Dateien/muxlab_utilities.js"></script>
+		<script type="text/javascript">
+		// detect old browsers
+		if (typeof JSON === 'undefined') {
+			JSON = {};
+			JSON.stringify = JSON.stringify || function(obj) {
+			    var t = typeof (obj);
+			    if (t != "object" || obj === null) {
+			        // simple data type
+			        if (t == "string")
+			            obj = '"' + obj + '"';
+			        return String(obj);
+			    } else {
+			        // recurse array or object
+			        var n, v, json = [], arr = (obj && obj.constructor == Array);
+			        for (n in obj) {
+			            v = obj[n];
+			            t = typeof (v);
+			            if (t == "string")
+			                v = '"' + v + '"';
+			            else if (t == "object" && v !== null)
+			                v = JSON.stringify(v);
+			            json.push((arr ? "" : '"' + n + '":') + String(v));
+			        }
+			        return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
+			    }
+			};
+		}
+		
+		function manageGenericPostError(xhr){
+			window.xhr = xhr;	
+			var response = xhr.responseText;
+			
+			if(xhr.status == 403) // i.e Forbiden : Session or password not valid
+			{
+				if( response.indexOf('Invalid Password') == 0 ) // Is found
+				{
+					alert(ui.translations['error_password']);
+				}
+				else if( response.indexOf('Invalid Session') == 0 ) // Is found
+				{
+					if(gIsReloading == false) // This is to prevent other popup window while reloading
+					{
+						gIsReloading = true;
+						alert(ui.translations['error_session_exp']);
+						location.href = '/';
+						setTimeout("gIsReloading = false;", 2000);
+					}
+				}
+				else
+				{
+					if ( (response === 'undefined') || (response == '') )
+						alert("an unexpected error has occurred !");
+					else
+						alert(response);
+				}
+			}
+			else
+			{
+				if ( (response === 'undefined') || (response == '') )
+					alert("an unexpected error has occurred !");
+				else
+					alert(response);
+			}
+		}
+		
+		function manageGenericGetError(xhr){
+			window.xhr = xhr;	
+			if(xhr.status == 403) // i.e Forbiden : Session or password not valid
+			{
+				manageGenericPostError(xhr);
+			}
+		}
+			
+		var gIsReloading = false;
+		window.gSources = [];
+		window.gDisplays = [];
+		
+		$(function() {
+			var baseURL = '/';
+			
+			function UI() {
+				ui = this;
+				
+				this.page;
+				this.user = 0;
+				this.lang = null;
+				this.translations = {};
+				this.boxname = '';
+				this.fwVersionMaster = '';
+				this.fwVersionSecondary = '';
+				
+				this.logout = function() {
+					echinops.get('logout', function() {
+						//ui.setUser(0);
+						// Force a reload to get a new session id
+						location.href = '/';
+					});
+				};
+				
+				this.setUser = function(user) {
+					ui.user = user;
+					if (user > 0) {
+						$('#nav .login').hide();
+						if (ui.page == 'login') ui.setPage('ports');
+					} else {
+						$('#nav .login').show();
+						ui.setPage('login');
+					}
+					
+					ui.refreshUser();
+				};
+				
+				this.refreshUser = function() {
+					$('.access_controlled').each(function(index, el) {
+						if ($(this).attr('data-minuser') == 5) {
+							if ((ui.page == 'monitor') && (ui.user == 0) )
+								$(this).show();
+							else
+								$(this).hide();
+						}else if ($(this).attr('data-minuser') <= ui.user) {
+							$(this).show();
+						} else {
+							$(this).hide();
+						}
+					});
+				};
+				
+				// change the language by loading hte appropriate language file
+				this.setLanguage = function(lang) {
+					if (lang == ui.lang) return;
+					$('#language select').val(lang);
+					ui.lang = lang;
+					setCookie('lang', lang, 99999);
+					$.get(baseURL + 'lang/' + lang + '.json', null, function(newTranslations) {
+						ui.translations = newTranslations;
+						ui.refreshLanguage();
+					}, 'json');
+				};
+				
+				this.refreshLanguage = function() {
+					$('.localized').each(function(index, el) {
+						if (ui.boxname) {
+							$('head title').text(ui.translations['title'] + ' | ' + ui.boxname);
+						} else {
+							$('head title').text(ui.translations['title']);
+						}
+						
+                        if ($(this).is("input[type='submit']") || $(this).is("input[type='button']")) {
+                            $(this).val(ui.translations[$(this).attr('data-text')]);
+                        } else {
+                            $(this).html(ui.translations[$(this).attr('data-text')]);
+							
+							if($(this).attr('data-text') == "copyright")
+								$(this).html($(this).html() + " " + ui.fwVersionMaster);
+								
+							if($(this).attr('data-text') == "firmware_intro")
+								$(this).html($(this).html() + " " + ui.fwVersionMaster + ")");
+							
+							if($(this).attr('data-text') == "firmware_version_master")
+								$(this).html($(this).html() + " " + ui.fwVersionMaster );
+								
+							if($(this).attr('data-text') == "firmware_version_minor")
+								$(this).html($(this).html() + " " + ui.fwVersionSecondary + ")");								
+                        }
+					});
+					$('.localized_blocks').each(function(index, el) {
+						$(this).children('.' + ui.lang).siblings().hide();
+						$(this).children('.' + ui.lang).show();
+					});
+				};
+				
+				this.setPage = function(page) {
+					if ((page == 'config' || page == 'ports') && ui.user == 0) return ui.setPage('login');
+					if (page == ui.page) return;
+					ui.page = page;
+					location.hash = '#!' + page;
+					$('#content_container').load(baseURL + page + '.html', null, function() {
+						ui.refreshUser();
+						ui.refreshLanguage();
+					});
+				};
+				
+				this.savedDialog = function(saveButton) {
+					var savedMessage = $('<div>' + ui.translations['saved_message'] + '</div>');
+					savedMessage.css({
+						position: 'absolute',
+						top: saveButton.position().top,
+						left: saveButton.position().left + saveButton.outerWidth() + 4,
+						backgroundColor: '#44ee44',
+						padding: '3px 5px',
+						borderRadius: '4px',
+						display: 'none'
+					});
+					saveButton.after(savedMessage);
+					savedMessage.fadeIn(150, function() {
+						setTimeout(function() {
+							savedMessage.fadeOut(800, function() {
+								savedMessage.remove();
+							});
+						}, 3000);
+					});
+				};
+				
+				if (location.search.length < 2) {
+					// we don't have a session ID so let's get one
+					new Echinops(null);
+					echinops.get('session', function(data) {
+						location.href = location.href + '?' + data[0];
+					});
+					return;
+				}
+				var sessionID = location.search.substring(1);
+				new Echinops(sessionID);
+				
+				// check if there's a lang= param in the URL and apply it
+				var match = null;
+				if (match = /(^|\?|&)lang=([a-z]{2})/.exec(location.search)) {
+					ui.setLanguage(match[2]);
+				} else {
+					var lang = getCookie('lang');
+					if (lang) {
+						ui.setLanguage(lang);
+					} else {
+						ui.setLanguage('en');
+					}
+				}
+				
+				// get current user
+				echinops.get('auth', function(data) {
+					user = data[0];
+					ui.setUser(user);
+					
+					// check if there's a page set int he #!hash
+					if (location.hash && location.hash.length > 2) {
+						ui.setPage(location.hash.substring(2));
+					} else {
+						ui.setPage('ports');
+					}
+				})
+				
+				$('a[href]').live('click', function(e) {
+					if ($(this).attr('href').indexOf('#!') > -1) {
+						ui.setPage($(this).attr('href').substring(2));
+					}
+					else if ($(this).attr('href') == '/') {
+						e.preventDefault();
+						echinops.get('auth', function(data) {
+							if (data[0]) 
+							{
+								ui.setUser(data[0]);
+								ui.setPage('ports');
+							}
+							else
+								location.href = '/';
+						})
+					}
+				});
+				
+				$(window).bind('popstate', function(e) {
+					if (location.hash && location.hash.length > 2) {
+						ui.setPage(location.hash.substring(2));
+					}
+				});
+			}
+			
+			function Echinops(sessionID) {
+				echinops = this;
+				
+				this.getSessionId = sessionID;
+				
+				this.monitor = function(callback) {
+					var waiting = 1;
+					var monitorData = {};
+					echinops.get('mon_voltages', function(data) {
+						monitorData.Voltage = data[0];
+						//waiting--;
+						//if (waiting == 0) callback(monitorData);
+						echinops.get('mon_fans', function(data1) {
+							monitorData.Fan1 = data1[0];
+							monitorData.Fan2 = data1[1];
+							monitorData.Fan3 = data1[2];
+							monitorData.Fan4 = data1[3];
+							//waiting--;
+							//if (waiting == 0) callback(monitorData);
+							echinops.get('mon_temp', function(data2) {
+								monitorData.Tmp = data2[0];
+								//waiting--;
+								//if (waiting == 0) callback(monitorData);
+								echinops.get('mon_psu', function(data3) {
+									monitorData.psu1 = data3[0];
+									monitorData.psu2 = data3[1];
+									//waiting--;
+									//if (waiting == 0) callback(monitorData);
+									echinops.get('mon_status', function(data4) {
+										monitorData.sts = data4[0];
+										waiting--;
+										if (waiting == 0) callback(monitorData);
+									});
+								});
+							});
+						});
+					});
+					
+					echinops.get('mon_msg', function(data5) {
+						monitorData.warn = data5[0];
+						waiting--;
+						if (waiting == 0) callback(monitorData);
+					});
+				};
+				
+				this.setSessionId = function(newSessionID){
+					this.getSessionId = newSessionID;
+				};
+				
+				this.get = function(command, callback, errorCallback) {
+					$.ajax({
+						type: 'GET',
+						url: baseURL + 'var/' + command + '.json?sid=' + this.getSessionId,
+						contentType : 'application/json',
+						dataType: 'json',
+						success: function(data) {
+							if (callback) callback(data);
+						},
+						error: function(xhr) {
+							if (errorCallback) 
+								errorCallback(xhr);
+							else
+								manageGenericGetError(xhr);
+						}
+					});
+				};
+				
+				this.post = function(command, data, callback, errorCallback) {
+					$.ajax({
+						type: 'POST',
+						url: baseURL + 'var/' + command + '.json?sid=' + this.getSessionId,
+						contentType : 'application/json',
+						data: JSON.stringify(data),
+						dataType: 'json',
+						timeout: 10000,
+						success: function(data) {
+							if (callback) callback(data);
+						},
+						error: function(xhr) {
+							if (errorCallback) 
+								errorCallback(xhr);
+							else{
+								manageGenericPostError(xhr);
+							}
+						}
+					});
+				};
+				
+				this.postRegular = function(command, data, callback, errorCallback) {
+					$.ajax({
+						type: 'POST',
+						url: baseURL + command + '?sid=' + this.getSessionId,
+						data: data,
+						timeout: 10000,
+						success: function(data) {
+							if (callback) callback(data);
+						},
+						error: function(xhr) {
+							if (errorCallback) errorCallback(xhr);
+							else{
+								manageGenericPostError(xhr);
+							}
+						}
+					});
+				};
+			}
+			
+			new UI();
+			
+			// Get both firmware version
+			echinops.get('fwVersion', function(data) {
+				if (data != null && typeof data[0] !== 'undefined') {
+					ui.fwVersionMaster = data[0];
+				}
+				if (data != null && typeof data[1] !== 'undefined') {
+					ui.fwVersionSecondary = data[1];
+				}
+			});
+						
+			// get product status
+			echinops.get('mon_status', function(data) {
+				if (data[0] == 0) {
+					cssClass = 'product_status_green';
+				} else if (data[0] == 1) {
+					cssClass = 'product_status_orange';
+				} else {
+					cssClass = 'product_status_red';
+				}
+				$('#product_status').attr('class', cssClass);
+			});
+			
+			// set title to box name
+			echinops.get('boxname', function(data) {
+				if (data != null && typeof data[0] !== 'undefined') {
+					ui.boxname = data[0];
+					if (typeof ui.translations['title'] !== 'undefined') {
+						$('head title').text(ui.translations['title'] + ' | ' + ui.boxname);
+					}
+				}
+			});
+		});
+		</script>
+	</head>
+	<body>
+		<div id="overlay"></div>
+		<div id="body">
+			<div id="header">
+				<a href="http://mismatrix.i4mi.bfh.ch/" id="logo"><img src="index-Dateien/logo.jpe" alt="Muxlab Control Panel"></a>
+				<div id="prod_name" class="localized" data-text="prod_name">Multimedia 16x16 Matrix Switch</div>
+				<div id="product_status_wrapper" class="small" style="text-align:right"><a href="#%21monitor" style="text-decoration: none; color: #000000;"><span class="localized" data-text="prod_status">Product status:</span></a> <a id="product_status" class="product_status_green" href="#%21monitor">&nbsp;</a></div>
+				<div id="language"><span class="localized" data-text="language">Language:</span> 
+					<select name="lang" onchange="ui.setLanguage($(this).val());">
+						<option value="en" class="localized" data-text="english" selected="selected">English</option>
+						<option value="fr" class="localized" data-text="french">French</option>
+						<option value="es" class="localized" data-text="spanish">Spanish</option>
+					</select>
+				</div>
+				<a id="logout" href="javascript:ui.logout();" class="access_controlled localized" data-minuser="1" data-text="logout">Logout</a>
+				<a id="loginUP" href="http://mismatrix.i4mi.bfh.ch/" class="access_controlled localized" data-minuser="5" data-text="loginUP" style="display: none;">Login</a>
+			</div>
+			<div id="nav">
+				<a href="#%21ports" class="access_controlled localized" data-minuser="1" data-text="port_management">Port Management</a>
+				<a href="#%21config" class="access_controlled localized" data-minuser="1" data-text="setup">Setup</a>
+				<a href="#%21help" class="localized" data-text="help">Help</a>
+			</div>
+			<div id="content_container">
+<div id="content_center">
+	<br>
+	<div id="portman_content">
+		<br>
+		<h1 style="margin: 0" class="localized" data-text="port_management">Port Management</h1>
+		<span class="medium localized" data-text="ports_intro">Connect your 
+displays to the desired sources below. Once you've selected the displays
+ you want to change, use the "Connect" button at the bottom to make the 
+connections.</span> <br>
+		<br>
+		<div id="portman_wrapper">
+			<div class="portman_container">
+				<h4 class="localized open_presets" data-text="presets" style="margin: 0; text-decoration: underline; cursor: pointer;">Presets</h4>
+				<div class="presets_container" style="display: none;">
+					<select class="presets_select" style="font-size: 12px; margin: 0; height: 19px">
+						
+					</select>
+					<input class="load_preset localized" data-text="load_preset" value="Load Preset" type="button">
+					<input class="save_preset localized" data-text="save_preset" value="Save Preset" type="button">
+					<input class="make_connections localized" data-text="make_connections" value="Make Connections" type="button">
+				</div>
+			</div>
+			<br>
+			<br class="clear">
+			
+			<span class="small" style="float: right; height: 22px">
+				<span class="localized" data-text="sort">Sort</span>&nbsp;
+					<select class="sort" style="font-size: 12px; margin: 0; height: 19px">
+						<option value="source" class="localized" data-text="source">Source</option>
+						<option value="display" selected="selected" class="localized" data-text="display">Display</option>
+					</select> &nbsp;
+				<span class="localized" data-text="by">by</span>&nbsp;&nbsp;<a href="javascript:;" class="sort_name localized" data-text="name">Name</a> | <a href="javascript:;" class="sort_index localized" data-text="port_number" style="font-weight: bold;">Port Number</a>
+			</span>
+			<br class="clear">
+			<div class="ports">
+				<div class="portman_container">
+					<table class="tblPortMan" cellspacing="0">
+						<tbody><tr>
+							<th style="width: 250px; text-align: left"><span class="tblHeading localized" data-text="display_caps">DISPLAY</span></th>
+							<th style="text-align: left"><span class="tblHeading localized" data-text="source_caps">SOURCE</span></th>
+						</tr>
+						<tr>
+							<td colspan="2">&nbsp;</td>
+						</tr>
+					<tr class="mapping display_0"><td><label>1. TV NW</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4" selected="selected">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_1"><td><label>2. TV NE</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5" selected="selected">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_2"><td><label>3. TV SW</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6" selected="selected">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_3"><td><label>4. TV SE</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7" selected="selected">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_4"><td><label>5. Output 5 - n/a</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_5"><td><label>6. Output 6 - n/a</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_6"><td><label>7. Output 7 - n/a</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_7"><td><label>8. Video Wall In</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_8"><td><label>9. Control NW</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12" selected="selected">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_9"><td><label>10. Control NE</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13" selected="selected">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_10"><td><label>11. Control SW</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14" selected="selected">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_11"><td><label>12. Control SE</label></td><td class="connectToDisplay"><select><option value="null">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15" selected="selected">16. Video Wall SE</option></select></td></tr><tr class="mapping display_12"><td><label>13. Output 13 - n/a</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_13"><td><label>14. Output 14 - n/a</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_14"><td><label>15. Output 15 - n/a</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr><tr class="mapping display_15"><td><label>16. Output 16 - n/a</label></td><td class="connectToDisplay"><select><option value="null" selected="selected">-</option><option value="0">1. Apple TV MIS-NW</option><option value="1">2. Apple TV MIS-NE</option><option value="2">3. Apple TV MIS-SW</option><option value="3">4. Apple TV MIS-SE</option><option value="4">5. PC NW</option><option value="5">6. PC NE</option><option value="6">7. PC SW</option><option value="7">8. PC SE</option><option value="8">9. ClickShare</option><option value="9">10. wePresent</option><option value="10">11. ChromeCast</option><option value="11">12. Miracast</option><option value="12">13. Video Wall NW</option><option value="13">14. Video Wall NE</option><option value="14">15. Video Wall SW</option><option value="15">16. Video Wall SE</option></select></td></tr></tbody></table>
+				</div>
+			</div>
+		</div>
+		<br> <br> <input class="save localized" data-text="connect" value="Connect" type="button"> <br> <br> <br>
+		
+	</div>
+</div></div>
+			<div id="footer" class="localized" data-text="copyright">© 2013 MuxLab, Inc 2.0.0</div>
+		</div>
+	
+</body></html>
