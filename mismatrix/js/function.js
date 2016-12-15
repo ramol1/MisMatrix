@@ -25,15 +25,17 @@ function auth(){
 
   function getSessionId() {
   sessionID =  $.ajax({
-      type: 'GET',
+      type: 'POST',
       url: baseURL + 'var/session.json',
       contentType : 'application/json',
       dataType: 'json',
       success: function success(data, status, xhr) {
-        sessionKey = xhr.responseText.slice(1, -1);;
-        login();
+        sessionKey = xhr.responseText.slice(1, -1);
+        //login();
+        console.info("Logged successfully");
       },
-      error: function error() {
+      error: function error(data, status, xhr) {
+        console.info(data);
         console.info("Cannot get SessionID")
       }
     });
