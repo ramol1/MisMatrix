@@ -21,30 +21,29 @@ function auth(){
   var sessionKey = "";
 
 
-  getSessionId();
 
-  function getSessionId() {
+getSessionId();
+
+function getSessionId() {
   sessionID =  $.ajax({
-      type: 'POST',
+      type: 'GET',
       url: baseURL + 'var/session.json',
       contentType : 'application/json',
       dataType: 'json',
       success: function success(data, status, xhr) {
         sessionKey = xhr.responseText.slice(1, -1);
         //login();
-        console.info("Logged successfully");
+        console.info("Connect to mismatrix");
+        console.info(sessionKey);
+        login(sessionKey);
       },
       error: function error(data, status, xhr) {
-        console.info(data);
-        console.info("Cannot get SessionID")
+        console.error("Cannot connect to mismatrix")
       }
     });
-      //console.info(sessionID);
   };
 
-
-
-   function login() {
+   function login(sessionKey) {
     $.ajax({
       type: 'POST',
       url: baseURL + 'var/auth.json?sid=' + sessionKey,
@@ -60,8 +59,6 @@ function auth(){
       }
     });
   };
-
-
 
 
 
